@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# NuGet
+packages/
+tools/nuget.exe
+
+# Editor / OS
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
