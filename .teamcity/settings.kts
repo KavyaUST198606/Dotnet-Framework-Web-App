@@ -5,6 +5,14 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 version = "2024.03"  // must match your TeamCity server version
 
 project {
+    params {
+        // Set the real token value as a secure parameter in TeamCity (Project > Parameters),
+        // or replace this reference with the credentialsJSON id that stores it.
+        password("sonar.token", "credentialsJSON:CHANGE-ME", display = ParameterDisplay.HIDDEN)
+        text("sonar.host.url", "https://sonarqube.example.com", display = ParameterDisplay.NORMAL)
+        text("sonar.projectKey", "your-project-key", display = ParameterDisplay.NORMAL)
+    }
+
     buildType(Build)
 }
 
@@ -75,5 +83,10 @@ object Build : BuildType({
         vcs { }
     }
 
-    artifactRules = "artifacts/** => artifacts"
+    artifactRules = """
+        artifacts/** => artifacts
+        TestResults/** => TestResults
+        coverage/** => coverage
+    """.trimIndent()
 })
+ 
