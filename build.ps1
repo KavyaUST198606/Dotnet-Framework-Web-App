@@ -57,7 +57,7 @@ if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 
 Write-Host "==> Running tests"
 $testDll = Join-Path $root "tests\MyApp.Core.Tests\bin\$Configuration\MyApp.Core.Tests.dll"
-& $vstest $testDll /Logger:trx /ResultsDirectory:(Join-Path $artifacts "TestResults")
+& $vstest $testDll /Logger:trx "/ResultsDirectory:$(Join-Path $artifacts 'TestResults')"
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
 Write-Host "==> Publishing artifacts"

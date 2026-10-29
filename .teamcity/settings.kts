@@ -8,6 +8,7 @@ project {
     params {
         // Set the real token value as a secure parameter in TeamCity (Project > Parameters),
         // or replace this reference with the credentialsJSON id that stores it.
+        password("snyk.token", "credentialsJSON:CHANGE-ME", display = ParameterDisplay.HIDDEN)
         password("sonar.token", "credentialsJSON:CHANGE-ME", display = ParameterDisplay.HIDDEN)
         text("sonar.host.url", "https://sonarqube.example.com", display = ParameterDisplay.NORMAL)
         text("sonar.projectKey", "your-project-key", display = ParameterDisplay.NORMAL)
@@ -25,6 +26,11 @@ object Build : BuildType({
         cleanCheckout = true
     }
 
+    requirements {
+        // Windows agents only: .NET Framework builds need MSBuild and the Windows toolchain
+        contains("teamcity.agent.jvm.os.name", "Windows")
+    }
+
     steps {
         nuGetInstaller {
             name = "1. Restore NuGet packages"
@@ -33,23 +39,14 @@ object Build : BuildType({
         }
 
         powerShell {
-            name = "2. Snyk dependency scan"
+            name = "2. Snyk dependency and code scan"
             scriptMode = script {
                 content = """
                     ${'$'}env:SNYK_TOKEN = "%snyk.token%"
                     npm install -g snyk
                     if (${'$'}LASTEXITCODE -ne 0) { throw "Failed to install Snyk CLI" }
-                    snyk test --file=MyDotNetFrameworkApp.sln --all-projects --severity-threshold=high
+                    snyk test --all-projects --severity-threshold=high
                     if (${'$'}LASTEXITCODE -ne 0) { throw "Snyk found high or critical dependency vulnerabilities" }
-                """.trimIndent()
-            }
-        }
-
-        powerShell {
-            name = "3. Snyk code scan"
-            scriptMode = script {
-                content = """
-                    ${'$'}env:SNYK_TOKEN = "%snyk.token%"
                     snyk code test --severity-threshold=high
                     if (${'$'}LASTEXITCODE -ne 0) { throw "Snyk code scan found high or critical issues" }
                 """.trimIndent()
@@ -57,19 +54,19 @@ object Build : BuildType({
         }
 
         msBuild {
-            name = "4. Build solution"
+            name = "3. Build solution"
             path = "MyDotNetFrameworkApp.sln"
             targets = "Rebuild"
             runnerArgs = "/p:Configuration=Release /p:Platform=\"Any CPU\" /m /v:minimal"
         }
 
         vsTest {
-            name = "5. Run MSTest unit tests"
+            name = "4. Run MSTest unit tests"
             testAssemblies = "tests/MyApp.Core.Tests/bin/Release/MyApp.Core.Tests.dll"
         }
 
         powerShell {
-            name = "6. Publish console app"
+            name = "5. Publish console app"
             scriptMode = script {
                 content = """
                     New-Item -ItemType Directory -Force -Path artifacts\publish | Out-Null
